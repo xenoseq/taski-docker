@@ -6,6 +6,8 @@ version: '3'
 # Перечень volume
 volumes:
   pg_data:
+  # Новый volume — для статических файлов
+  static:
 
 # Перечень контейнеров
 services:
@@ -22,12 +24,35 @@ services:
   # Имя и описание контейнера с бэкендом
   backend:
     # Из какого Dockerfile собирать образ для этого контейнера:
-    build: ./backend/
+    image: xenoseq/taski_backend
     env_file: .env
     # Какие контейнеры нужно запустить до старта этого контейнера:
+
+    # Тут подключаем volume к backend
+    volumes:
+      - static:/backend_static
+
     depends_on:
       - db
   # Имя третьего контейнера. Это контейнер с фронтендом
   frontend:
     env_file: .env
-    build: ./frontend/
+    image: xenoseq/taski_frontend
+    command: cp -r /app/build/. /frontend_static/
+    volumes:
+      - static:/frontend_static
+# Добавляем новый контейнер: gateway.
+  gateway:
+    # запустить образ, 
+    # описанный в Dockerfile в папке gateway
+    image: xenoseq/taski_gateway
+    # Ключ ports устанавливает
+    # перенаправление всех запросов с порта 8000 хоста
+    # на порт 80 контейнера.
+
+    # А тут подключаем volume со статикой к gateway
+    volumes:
+      - static:/staticfiles/
+
+    ports:
+      - 8000:80 
